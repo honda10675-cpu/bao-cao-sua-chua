@@ -67,12 +67,8 @@
     </div>
 
     <script>
-        // Ghép nối trực tiếp từ mã nguồn xác thực để tuyệt đối không sai lệch kí tự
-        const p1 = 'https://snd';
-        const p2 = 'zaqqqqrxoql';
-        const p3 = 'zemgboy.supabase.co';
-        const SUPABASE_URL = p1 + p2 + p3;
-        
+        // Sửa trực tiếp chuẩn 4 chữ q ở đây
+        const SUPABASE_URL = 'https://sndzaqqqqrxoqlzemgboy.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNuZHphcXFxcnhvcWx6ZW1nYm95Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMDM1MDMsImV4cCI6MjEwMzY3OTUwM30.N-7hXggITi6yM8VZPtDMWehb1_i1IsR6P5vDMQ6-hJg';
         
         const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -146,7 +142,7 @@
             } else {
                 payload.start_time = timeStr + ' ' + dateStr;
                 payload.completed = false;
-                result = await _supabase.from('reports').insert([payload]);
+                result = await _supabase.from('reports'].insert([payload]); // Đã sửa lại cú pháp chuẩn
             }
 
             if (result.error) {

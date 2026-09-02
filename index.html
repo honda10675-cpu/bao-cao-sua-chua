@@ -4,30 +4,38 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Báo Cáo Tiến Độ Sửa Chữa Máy Móc / 设备维修进度汇报</title>
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         * { box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 10px; background-color: #f0f2f5; color: #1c1e21; }
         h2 { text-align: center; color: #1877f2; margin: 10px 0 2px 0; font-size: 20px; }
         h3 { text-align: center; color: #606770; margin: 0 0 15px 0; font-size: 14px; font-weight: normal; }
+        
         .form-container { background: #ffffff; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); margin-bottom: 15px; }
         .form-group { margin-bottom: 12px; }
         label { font-weight: 600; display: block; margin-bottom: 4px; font-size: 13px; color: #4b4f56; }
         input, textarea { width: 100%; padding: 10px; border: 1px solid #ccd0d5; border-radius: 6px; font-size: 14px; outline: none; }
+        input:focus, textarea:focus { border-color: #1877f2; }
         textarea { resize: vertical; height: 65px; }
+        
         .btn-group { display: flex; gap: 8px; margin-top: 15px; }
         button { flex: 1; padding: 12px 8px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: #ffffff; font-size: 14px; }
         .btn-add { background-color: #1877f2; }
         .btn-download { background-color: #42b72a; }
+        
         #report-area { background: #ffffff; padding: 12px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 650px; }
         th, td { border: 1px solid #dadde1; padding: 8px; text-align: left; vertical-align: top; word-break: break-word; }
         th { background-color: #f5f6f7; color: #4b4f56; text-align: center; font-weight: 700; }
+        
         .completed { background-color: #e6f4ea !important; }
         .machine-completed { color: #2e7d32 !important; font-weight: bold; }
         .status-tag { display: block; color: #2e7d32; font-weight: bold; font-size: 11px; margin-top: 4px; }
         .cn-text { color: #d93025; display: block; font-weight: 600; margin-top: 4px; font-size: 12px; }
+        
         .action-btns { display: flex; gap: 4px; justify-content: center; }
         .btn-sm { padding: 6px 8px; font-size: 11px; border-radius: 4px; font-weight: bold; }
         .btn-complete { background-color: #34a853; }
@@ -36,18 +44,33 @@
     </style>
 </head>
 <body>
+
     <h2>BÁO CÁO TIẾN ĐỘ SỬA CHỮA MÁY MÓC</h2>
     <h3>设备维修进度汇报</h3>
+
     <div class="form-container">
-        <div class="form-group"><label>Tên Máy / 设备名称:</label><input type="text" id="machine" placeholder="Nhập tên máy..."></div>
-        <div class="form-group"><label>Nội Dung Sửa Chữa / 维修内容:</label><textarea id="content" placeholder="Nhập nội dung hư hỏng, sự cố..."></textarea></div>
-        <div class="form-group"><label>Giải Pháp + Quy Cách Linh Kiện / 解决方案+零件规格:</label><textarea id="solution" placeholder="Nhập phương án và quy cách linh kiện..."></textarea></div>
-        <div class="form-group"><label>Thời Gian Dự Kiến Hoàn Thành / 预计完成时间:</label><input type="text" id="estimate" placeholder="Ví dụ: 2 giờ, 17:00 ngày 03/09..."></div>
+        <div class="form-group">
+            <label>Tên Máy / 设备名称:</label>
+            <input type="text" id="machine" placeholder="Nhập tên máy...">
+        </div>
+        <div class="form-group">
+            <label>Nội Dung Sửa Chữa / 维修内容:</label>
+            <textarea id="content" placeholder="Nhập nội dung hư hỏng, sự cố..."></textarea>
+        </div>
+        <div class="form-group">
+            <label>Giải Pháp + Quy Cách Linh Kiện / 解决方案+零件规格:</label>
+            <textarea id="solution" placeholder="Nhập phương án và quy cách linh kiện..."></textarea>
+        </div>
+        <div class="form-group">
+            <label>Thời Gian Dự Kiến Hoàn Thành / 预计完成时间:</label>
+            <input type="text" id="estimate" placeholder="Ví dụ: 2 giờ, 17:00 ngày 03/09...">
+        </div>
         <div class="btn-group">
             <button class="btn-add" id="btn-submit" onclick="addOrUpdateRow()">Thêm Báo Cáo / 添加汇报</button>
             <button class="btn-download" onclick="downloadImage()">Tải Hình Báo Cáo / 下载图片</button>
         </div>
     </div>
+
     <div id="report-area">
         <h3 style="text-align: center; margin-bottom: 8px; color: #1c1e21; font-weight: bold;">BẢNG TIẾN ĐỘ SỬA CHỮA / 维修进度表</h3>
         <table>
@@ -62,28 +85,55 @@
                     <th class="no-print" style="width: 105px;">Thao Tác<br>操作</th>
                 </tr>
             </thead>
-            <tbody id="table-body"></tbody>
+            <tbody id="table-body">
+            </tbody>
         </table>
     </div>
+
     <script>
         const SUPABASE_URL = 'https://sndzaqqrxoqlzemgboy.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNuZHphcXFyeG9xbHplbWdib3kiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTc1NzM3NTY2OCwiZXhwIjoyMDczOTUxNjY4fQ.4z0A_m1j_W8mJbN-_b8iV_yqX4PZz-d-T4O19B_uW40';
-        const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        
+        let client;
         let editId = null;
+
+        function initSupabase() {
+            if (window.supabase) {
+                client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                loadReports();
+            } else {
+                setTimeout(initSupabase, 200);
+            }
+        }
 
         async function translateText(text) {
             if (!text || !text.trim()) return '';
             try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 1500); // Giới hạn 1.5 giây nếu dịch không phản hồi thì bỏ qua
                 const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl=zh-CN&dt=t&q=${encodeURIComponent(text)}`;
-                const res = await fetch(url);
+                const res = await fetch(url, { signal: controller.signal });
+                clearTimeout(timeoutId);
                 const data = await res.json();
                 return data[0].map(item => item[0]).join('');
-            } catch (e) { return ''; }
+            } catch (e) {
+                return ''; // Trả về rỗng nếu lỗi mạng để không làm đứng web
+            }
         }
 
         async function loadReports() {
-            const { data, error } = await client.from('reports').select('*').order('id', { ascending: true });
-            if (!error) renderTable(data || []);
+            if (!client) return;
+            const { data, error } = await client
+                .from('reports')
+                .select('*')
+                .order('id', { ascending: true });
+
+            if (error) {
+                console.error("Lỗi tải dữ liệu:", error);
+                return;
+            }
+
+            renderTable(data || []);
         }
 
         async function addOrUpdateRow() {
@@ -92,27 +142,55 @@
             const solution = document.getElementById('solution').value;
             const estimate = document.getElementById('estimate').value;
 
-            if (!machine || !content) { alert('Vui lòng nhập Tên máy và Nội dung!'); return; }
-
-            const btn = document.getElementById('btn-submit');
-            btn.innerText = 'Đang đồng bộ... / 正在同步...';
-
-            const machineCn = await translateText(machine);
-            const contentCn = await translateText(content);
-            const solutionCn = await translateText(solution);
-            const estimateCn = await translateText(estimate);
-
-            const now = new Date();
-            const fullTimeStr = `${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} ${now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' })}`;
-
-            if (editId !== null) {
-                await client.from('reports').update({ machine, machine_cn: machineCn, content, content_cn: contentCn, solution, solution_cn: solutionCn, estimate, estimate_cn: estimateCn }).eq('id', editId);
-                editId = null;
-            } else {
-                await client.from('reports').insert([{ start_time: fullTimeStr, machine, machine_cn: machineCn, content, content_cn: contentCn, solution, solution_cn: solutionCn, estimate, estimate_cn: estimateCn, completed: false }]);
+            if (!machine || !content) {
+                alert('Vui lòng nhập Tên máy và Nội dung sửa chữa!');
+                return;
             }
 
-            btn.innerText = 'Thêm Báo Cáo / 添加汇报';
+            const btnSubmit = document.getElementById('btn-submit');
+            btnSubmit.innerText = 'Đang đồng bộ... / 正在同步...';
+
+            let machineCn = '', contentCn = '', solutionCn = '', estimateCn = '';
+            try {
+                machineCn = await translateText(machine);
+                contentCn = await translateText(content);
+                solutionCn = await translateText(solution);
+                estimateCn = await translateText(estimate);
+            } catch(e) {}
+
+            const now = new Date();
+            const dateStr = now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+            const fullTimeStr = `${timeStr} ${dateStr}`;
+
+            let resError = null;
+            if (editId !== null) {
+                const { error } = await client.from('reports').update({
+                    machine, machine_cn: machineCn,
+                    content, content_cn: contentCn,
+                    solution, solution_cn: solutionCn,
+                    estimate, estimate_cn: estimateCn
+                }).eq('id', editId);
+                resError = error;
+                editId = null;
+            } else {
+                const { error } = await client.from('reports').insert([{
+                    start_time: fullTimeStr,
+                    machine, machine_cn: machineCn,
+                    content, content_cn: contentCn,
+                    solution, solution_cn: solutionCn,
+                    estimate, estimate_cn: estimateCn,
+                    completed: false
+                }]);
+                resError = error;
+            }
+
+            if (resError) {
+                alert("Lỗi kết nối Supabase: " + resError.message);
+            }
+
+            btnSubmit.innerText = 'Thêm Báo Cáo / 添加汇报';
+
             clearInputs();
             loadReports();
         }
@@ -120,16 +198,25 @@
         function renderTable(reports) {
             const tbody = document.getElementById('table-body');
             tbody.innerHTML = '';
+
             reports.forEach((item, index) => {
                 const tr = document.createElement('tr');
                 if (item.completed) tr.classList.add('completed');
+
+                const machineClass = item.completed ? 'machine-completed' : '';
+                const completedStatusText = item.completed ? '<span class="status-tag">Hoàn thành / 已完成</span>' : '';
+
                 tr.innerHTML = `
                     <td style="text-align:center; font-weight:bold;">${index + 1}</td>
-                    <td><b class="${item.completed ? 'machine-completed' : ''}">${item.machine || ''}</b><span class="cn-text">${item.machine_cn || ''}</span>${item.completed ? '<span class="status-tag">Hoàn thành / 已完成</span>' : ''}</td>
+                    <td>
+                        <b class="${machineClass}">${item.machine || ''}</b>
+                        ${item.machine_cn ? `<span class="cn-text">${item.machine_cn}</span>` : ''}
+                        ${completedStatusText}
+                    </td>
                     <td style="font-size: 11px; text-align:center;">${item.start_time || ''}</td>
-                    <td>${(item.content || '').replace(/\n/g, '<br>')}<span class="cn-text">${(item.content_cn || '').replace(/\n/g, '<br>')}</span></td>
-                    <td>${(item.solution || '').replace(/\n/g, '<br>')}<span class="cn-text">${(item.solution_cn || '').replace(/\n/g, '<br>')}</span></td>
-                    <td>${item.estimate || ''}<span class="cn-text">${item.estimate_cn || ''}</span></td>
+                    <td>${(item.content || '').replace(/\n/g, '<br>')}${item.content_cn ? `<span class="cn-text">${(item.content_cn).replace(/\n/g, '<br>')}</span>` : ''}</td>
+                    <td>${(item.solution || '').replace(/\n/g, '<br>')}${item.solution_cn ? `<span class="cn-text">${(item.solution_cn).replace(/\n/g, '<br>')}</span>` : ''}</td>
+                    <td>${item.estimate || ''}${item.estimate_cn ? `<span class="cn-text">${item.estimate_cn}</span>` : ''}</td>
                     <td class="no-print">
                         <div class="action-btns">
                             <button class="btn-sm btn-complete" onclick="markComplete(${item.id})">✓</button>
@@ -143,9 +230,12 @@
         }
 
         async function markComplete(id) {
-            if (prompt('Nhập mật khẩu xác nhận hoàn thành (230):') === '230') {
+            const pwd = prompt('Nhập mật khẩu xác nhận hoàn thành (230):');
+            if (pwd === '230') {
                 await client.from('reports').update({ completed: true }).eq('id', id);
                 loadReports();
+            } else if (pwd !== null) {
+                alert('Mật khẩu không đúng!');
             }
         }
 
@@ -179,18 +269,21 @@
             const reportArea = document.getElementById('report-area');
             const noPrintElements = document.querySelectorAll('.no-print');
             noPrintElements.forEach(el => el.style.display = 'none');
+
             html2canvas(reportArea, { scale: 2, useCORS: true }).then(canvas => {
                 const link = document.createElement('a');
                 const now = new Date();
-                link.download = `Bao_Cao_Repair_${now.getFullYear()}_${now.getMonth()+1}_${now.getDate()}.png`;
+                const fileDate = now.getFullYear() + '_' + (now.getMonth()+1) + '_' + now.getDate();
+                link.download = `Bao_Cao_Repair_${fileDate}.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
+                
                 noPrintElements.forEach(el => el.style.display = '');
             });
         }
 
         window.onload = function() {
-            loadReports();
+            initSupabase();
             setInterval(loadReports, 3000);
         };
     </script>

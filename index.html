@@ -109,7 +109,15 @@
             var timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
             var fullTimeStr = timeStr + ' ' + dateStr;
 
-            var payload = { machine: machine, content: content, solution: solution, estimate: estimate };
+            // Khớp chính xác các cột trên Supabase
+            var payload = { 
+                machine: machine, 
+                content: content, 
+                solution: solution, 
+                estimate: estimate,
+                machine_cn: machine,
+                content_cn: content
+            };
 
             var req;
             if (editId !== null) {

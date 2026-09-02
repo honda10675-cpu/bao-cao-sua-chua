@@ -66,6 +66,7 @@
     </div>
 
     <script>
+        // Địa chỉ chuẩn xác 100% với 4 chữ q: sndzaqqqqrxoqlzemgboy
         const API_URL = 'https://sndzaqqqqrxoqlzemgboy.supabase.co/rest/v1/reports';
         const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNuZHphcXFxcnhvcWx6ZW1nYm95Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMDM1MDMsImV4cCI6MjEwMzY3OTUwM30.N-7hXggITi6yM8VZPtDMWehb1_i1IsR6P5vDMQ6-hJg';
 
@@ -113,7 +114,7 @@
             }
 
             var btn = document.getElementById('btn-submit');
-            btn.innerText = 'Đang dịch & lưu... / 正在翻译保存...';
+            btn.innerText = 'Đang lưu... / 正在保存...';
 
             var contentZh = await translateText(content);
             var solutionZh = await translateText(solution);

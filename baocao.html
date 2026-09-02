@@ -1,1 +1,241 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo Cáo Tiến Độ Sửa Chữa Máy Móc / 设备维修进度汇报</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 10px; background-color: #f0f2f5; color: #1c1e21; }
+        h2 { text-align: center; color: #1877f2; margin: 10px 0 2px 0; font-size: 20px; }
+        h3 { text-align: center; color: #606770; margin: 0 0 15px 0; font-size: 14px; font-weight: normal; }
+        .form-container { background: #ffffff; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); margin-bottom: 15px; }
+        .form-group { margin-bottom: 12px; }
+        label { font-weight: 600; display: block; margin-bottom: 4px; font-size: 13px; color: #4b4f56; }
+        input, textarea { width: 100%; padding: 10px; border: 1px solid #ccd0d5; border-radius: 6px; font-size: 14px; outline: none; }
+        textarea { resize: vertical; height: 65px; }
+        .btn-group { display: flex; gap: 8px; margin-top: 15px; }
+        button { flex: 1; padding: 12px 8px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; color: #ffffff; font-size: 14px; }
+        .btn-add { background-color: #1877f2; }
+        .btn-download { background-color: #42b72a; }
+        #report-area { background: #ffffff; padding: 12px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.12); overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 650px; }
+        th, td { border: 1px solid #dadde1; padding: 8px; text-align: left; vertical-align: top; word-break: break-word; }
+        th { background-color: #f5f6f7; color: #4b4f56; text-align: center; font-weight: 700; }
+        .completed { background-color: #e6f4ea !important; }
+        .completed-text { color: #2e7d32; font-weight: bold; }
+        .zh-text { color: #d93025; font-weight: 500; display: block; margin-top: 4px; }
+        .action-btns { display: flex; gap: 4px; justify-content: center; }
+        .btn-sm { padding: 6px 8px; font-size: 11px; border-radius: 4px; font-weight: bold; }
+        .btn-complete { background-color: #34a853; }
+        .btn-edit { background-color: #fbbc05; color: #000; }
+        .btn-delete { background-color: #ea4335; }
+    </style>
+</head>
+<body>
+    <h2>BÁO CÁO TIẾN ĐỘ SỬA CHỮA MÁY MÓC</h2>
+    <h3>设备维修进度汇报</h3>
+    <div class="form-container">
+        <div class="form-group"><label>Tên Máy / 设备名称:</label><input type="text" id="machine" placeholder="Nhập tên máy..."></div>
+        <div class="form-group"><label>Nội Dung Sửa Chữa / 维修内容:</label><textarea id="content" placeholder="Nhập nội dung hư hỏng..."></textarea></div>
+        <div class="form-group"><label>Giải Pháp + Quy Cách Linh Kiện / 解决方案+零件规格:</label><textarea id="solution" placeholder="Nhập phương án..."></textarea></div>
+        <div class="form-group"><label>Thời Gian Dự Kiến / 预计完成时间:</label><input type="text" id="estimate" placeholder="Ví dụ: 2 giờ, 17:00..."></div>
+        <div class="btn-group">
+            <button class="btn-add" id="btn-submit" onclick="addOrUpdateRow()">Thêm Báo Cáo / 添加汇报</button>
+            <button class="btn-download" onclick="downloadImage()">Tải Hình Báo Cáo / 下载图片</button>
+        </div>
+    </div>
 
+    <div id="report-area">
+        <h3 style="text-align: center; margin-bottom: 8px;">BẢNG TIẾN ĐỘ SỬA CHỮA / 维修进度表</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 35px;">STT<br>序号</th>
+                    <th style="width: 110px;">Máy<br>设备</th>
+                    <th style="width: 95px;">Thời Gian Bắt Đầu<br>开始时间</th>
+                    <th>Nội Dung<br>内容</th>
+                    <th>Giải Pháp + Linh Kiện<br>解决方案+规格</th>
+                    <th style="width: 100px;">Thời Gian Dự Kiến<br>预计时间</th>
+                    <th class="no-print" style="width: 105px;">Thao Tác<br>操作</th>
+                </tr>
+            </thead>
+            <tbody id="table-body"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const SUPABASE_URL = 'https://sndzaqqqqrxoqlzemgboy.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNuZHphcXFxcnhvcWx6ZW1nYm95Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMDM1MDMsImV4cCI6MjEwMzY3OTUwM30.N-7hXggITi6yM8VZPtDMWehb1_i1IsR6P5vDMQ6-hJg';
+        
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        var editId = null;
+
+        async function translateText(text) {
+            if (!text || text.trim() === '') return '';
+            try {
+                const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl=zh-CN&dt=t&q=${encodeURIComponent(text)}`);
+                const data = await res.json();
+                if (data && data[0]) {
+                    return data[0].map(item => item[0]).join('');
+                }
+            } catch (e) {
+                console.error("Lỗi dịch:", e);
+            }
+            return '';
+        }
+
+        async function loadReports() {
+            const { data, error } = await _supabase
+                .from('reports')
+                .select('*')
+                .order('id', { ascending: true });
+            
+            if (error) {
+                console.error("Tải dữ liệu thất bại:", error.message);
+                return;
+            }
+            renderTable(data || []);
+        }
+
+        async function addOrUpdateRow() {
+            var machine = document.getElementById('machine').value;
+            var content = document.getElementById('content').value;
+            var solution = document.getElementById('solution').value;
+            var estimate = document.getElementById('estimate').value;
+
+            if (!machine || !content) {
+                alert('Vui lòng nhập Tên máy và Nội dung sửa chữa!');
+                return;
+            }
+
+            var btn = document.getElementById('btn-submit');
+            btn.innerText = 'Đang dịch & lưu... / 正在翻译保存...';
+
+            var contentZh = await translateText(content);
+            var solutionZh = await translateText(solution);
+
+            var finalContent = content;
+            if (contentZh) finalContent += '\n' + contentZh;
+
+            var finalSolution = solution;
+            if (solutionZh) finalSolution += '\n' + solutionZh;
+
+            var now = new Date();
+            var dateStr = now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            var timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+            var payload = {
+                machine: machine,
+                content: finalContent,
+                solution: finalSolution,
+                estimate: estimate
+            };
+
+            let result;
+            if (editId !== null) {
+                result = await _supabase.from('reports').update(payload).eq('id', editId);
+                editId = null;
+            } else {
+                payload.start_time = timeStr + ' ' + dateStr;
+                payload.completed = false;
+                result = await _supabase.from('reports').insert([payload]);
+            }
+
+            if (result.error) {
+                alert("Lỗi Supabase: " + result.error.message);
+            } else {
+                clearInputs();
+                loadReports();
+            }
+            btn.innerText = 'Thêm Báo Cáo / 添加汇报';
+        }
+
+        function formatBilingualText(text) {
+            if (!text) return '';
+            var lines = text.split('\n');
+            if (lines.length > 1) {
+                return lines[0] + '<span class="zh-text">' + lines.slice(1).join('<br>') + '</span>';
+            }
+            return lines[0];
+        }
+
+        function renderTable(reports) {
+            var tbody = document.getElementById('table-body');
+            tbody.innerHTML = '';
+            reports.forEach(function(item, index) {
+                var tr = document.createElement('tr');
+                if (item.completed) tr.classList.add('completed');
+                tr.innerHTML = 
+                    '<td style="text-align:center; font-weight:bold;">' + (index + 1) + '</td>' +
+                    '<td><b class="' + (item.completed ? 'completed-text' : '') + '">' + (item.machine || '') + '</b>' + (item.completed ? '<br><small class="completed-text">Hoàn thành / 已完成</small>' : '') + '</td>' +
+                    '<td style="font-size: 11px; text-align:center;">' + (item.start_time || '') + '</td>' +
+                    '<td>' + formatBilingualText(item.content) + '</td>' +
+                    '<td>' + formatBilingualText(item.solution) + '</td>' +
+                    '<td>' + (item.estimate || '') + '</td>' +
+                    '<td class="no-print">' +
+                        '<div class="action-btns">' +
+                            '<button class="btn-sm btn-complete" onclick="markComplete(' + item.id + ')">✓</button>' +
+                            '<button class="btn-sm btn-edit" onclick="editRow(' + item.id + ')">Sửa</button>' +
+                            '<button class="btn-sm btn-delete" onclick="deleteRow(' + item.id + ')">Xóa</button>' +
+                        '</div>' +
+                    '</td>';
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function markComplete(id) {
+            if (prompt('Nhập mật khẩu (230):') === '230') {
+                await _supabase.from('reports').update({ completed: true }).eq('id', id);
+                loadReports();
+            }
+        }
+
+        async function editRow(id) {
+            const { data } = await _supabase.from('reports').select('*').eq('id', id);
+            if (data && data.length > 0) {
+                var item = data[0];
+                document.getElementById('machine').value = item.machine || '';
+                document.getElementById('content').value = item.content ? item.content.split('\n')[0] : '';
+                document.getElementById('solution').value = item.solution ? item.solution.split('\n')[0] : '';
+                document.getElementById('estimate').value = item.estimate || '';
+                editId = id;
+            }
+        }
+
+        async function deleteRow(id) {
+            if (confirm('Xóa dòng này?')) {
+                await _supabase.from('reports').delete().eq('id', id);
+                loadReports();
+            }
+        }
+
+        function clearInputs() {
+            document.getElementById('machine').value = '';
+            document.getElementById('content').value = '';
+            document.getElementById('solution').value = '';
+            document.getElementById('estimate').value = '';
+        }
+
+        function downloadImage() {
+            var reportArea = document.getElementById('report-area');
+            var noPrintElements = document.querySelectorAll('.no-print');
+            noPrintElements.forEach(function(el) { el.style.display = 'none'; });
+            html2canvas(reportArea, { scale: 2, useCORS: true }).then(function(canvas) {
+                var link = document.createElement('a');
+                link.download = 'Bao_Cao_Repair.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                noPrintElements.forEach(function(el) { el.style.display = ''; });
+            });
+        }
+
+        window.onload = function() {
+            loadReports();
+            setInterval(loadReports, 4000);
+        };
+    </script>
+</body>
+</html>

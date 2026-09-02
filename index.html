@@ -25,6 +25,7 @@
         th { background-color: #f5f6f7; color: #4b4f56; text-align: center; font-weight: 700; }
         .completed { background-color: #e6f4ea !important; }
         .completed-text { color: #2e7d32; font-weight: bold; }
+        .zh-text { color: #d93025; font-weight: 500; display: block; margin-top: 4px; }
         .action-btns { display: flex; gap: 4px; justify-content: center; }
         .btn-sm { padding: 6px 8px; font-size: 11px; border-radius: 4px; font-weight: bold; }
         .btn-complete { background-color: #34a853; }
@@ -65,7 +66,6 @@
     </div>
 
     <script>
-        // Địa chỉ URL đã giải mã chuẩn xác 4 chữ q từ API Key của anh: sndzaqqqqrxoqlzemgboy
         const API_URL = 'https://sndzaqqqqrxoqlzemgboy.supabase.co/rest/v1/reports';
         const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNuZHphcXFxcnhvcWx6ZW1nYm95Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMDM1MDMsImV4cCI6MjEwMzY3OTUwM30.N-7hXggITi6yM8VZPtDMWehb1_i1IsR6P5vDMQ6-hJg';
 
@@ -78,19 +78,30 @@
 
         var editId = null;
 
+        async function translateText(text) {
+            if (!text || text.trim() === '') return '';
+            try {
+                const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl=zh-CN&dt=t&q=${encodeURIComponent(text)}`);
+                const data = await res.json();
+                if (data && data[0]) {
+                    return data[0].map(item => item[0]).join('');
+                }
+            } catch (e) {
+                console.error("Lỗi dịch:", e);
+            }
+            return '';
+        }
+
         function loadReports() {
             fetch(API_URL + '?select=*&order=id.asc', { headers: headers })
-                .then(res => {
-                    if (!res.ok) throw new Error('Mã lỗi HTTP: ' + res.status);
-                    return res.json();
-                })
+                .then(res => res.json())
                 .then(data => {
                     if (Array.isArray(data)) renderTable(data);
                 })
                 .catch(err => console.error("Tải dữ liệu thất bại:", err));
         }
 
-        function addOrUpdateRow() {
+        async function addOrUpdateRow() {
             var machine = document.getElementById('machine').value;
             var content = document.getElementById('content').value;
             var solution = document.getElementById('solution').value;
@@ -102,7 +113,16 @@
             }
 
             var btn = document.getElementById('btn-submit');
-            btn.innerText = 'Đang lưu... / 正在保存...';
+            btn.innerText = 'Đang dịch & lưu... / 正在翻译保存...';
+
+            var contentZh = await translateText(content);
+            var solutionZh = await translateText(solution);
+
+            var finalContent = content;
+            if (contentZh) finalContent += '\n' + contentZh;
+
+            var finalSolution = solution;
+            if (solutionZh) finalSolution += '\n' + solutionZh;
 
             var now = new Date();
             var dateStr = now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -110,8 +130,8 @@
 
             var payload = {
                 machine: machine,
-                content: content,
-                solution: solution,
+                content: finalContent,
+                solution: finalSolution,
                 estimate: estimate
             };
 
@@ -147,6 +167,15 @@
             });
         }
 
+        function formatBilingualText(text) {
+            if (!text) return '';
+            var lines = text.split('\n');
+            if (lines.length > 1) {
+                return lines[0] + '<span class="zh-text">' + lines.slice(1).join('<br>') + '</span>';
+            }
+            return lines[0];
+        }
+
         function renderTable(reports) {
             var tbody = document.getElementById('table-body');
             tbody.innerHTML = '';
@@ -157,8 +186,8 @@
                     '<td style="text-align:center; font-weight:bold;">' + (index + 1) + '</td>' +
                     '<td><b class="' + (item.completed ? 'completed-text' : '') + '">' + (item.machine || '') + '</b>' + (item.completed ? '<br><small class="completed-text">Hoàn thành / 已完成</small>' : '') + '</td>' +
                     '<td style="font-size: 11px; text-align:center;">' + (item.start_time || '') + '</td>' +
-                    '<td>' + (item.content || '').replace(/\n/g, '<br>') + '</td>' +
-                    '<td>' + (item.solution || '').replace(/\n/g, '<br>') + '</td>' +
+                    '<td>' + formatBilingualText(item.content) + '</td>' +
+                    '<td>' + formatBilingualText(item.solution) + '</td>' +
                     '<td>' + (item.estimate || '') + '</td>' +
                     '<td class="no-print">' +
                         '<div class="action-btns">' +
@@ -188,8 +217,8 @@
                     if (data && data.length > 0) {
                         var item = data[0];
                         document.getElementById('machine').value = item.machine || '';
-                        document.getElementById('content').value = item.content || '';
-                        document.getElementById('solution').value = item.solution || '';
+                        document.getElementById('content').value = item.content ? item.content.split('\n')[0] : '';
+                        document.getElementById('solution').value = item.solution ? item.solution.split('\n')[0] : '';
                         document.getElementById('estimate').value = item.estimate || '';
                         editId = id;
                     }

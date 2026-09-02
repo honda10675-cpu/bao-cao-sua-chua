@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Báo Cáo Tiến Độ Sửa Chữa Máy Móc / 设备维修进度汇报</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <style>
         * { box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 10px; background-color: #f0f2f5; color: #1c1e21; }
@@ -40,7 +40,7 @@
         <div class="form-group"><label>Tên Máy / 设备名称:</label><input type="text" id="machine" placeholder="Nhập tên máy..."></div>
         <div class="form-group"><label>Nội Dung Sửa Chữa / 维修内容:</label><textarea id="content" placeholder="Nhập nội dung hư hỏng..."></textarea></div>
         <div class="form-group"><label>Giải Pháp + Quy Cách Linh Kiện / 解决方案+零件规格:</label><textarea id="solution" placeholder="Nhập phương án..."></textarea></div>
-        <div class="form-group"><label>Thời Gian Dự Kiến / 预计完成时间:</label><input type="text" id="estimate" placeholder="Ví dụ: 2 giờ, 17:00 ngày 03/09..."></div>
+        <div class="form-group"><label>Thời Gian Dự Kiến / 预计完成时间:</label><input type="text" id="estimate" placeholder="Ví dụ: 2 giờ, 17:00..."></div>
         <div class="btn-group">
             <button class="btn-add" id="btn-submit" onclick="addOrUpdateRow()">Thêm Báo Cáo / 添加汇报</button>
             <button class="btn-download" onclick="downloadImage()">Tải Hình Báo Cáo / 下载图片</button>
@@ -67,126 +67,128 @@
 
     <script>
         const SUPABASE_URL = 'https://sndzaqqrxoqlzemgboy.supabase.co';
-        // Dán chuỗi sb_publishable_... bạn vừa copy ở Bước 1 vào giữa hai dấu ngoặc đơn bên dưới:
-        const SUPABASE_KEY = 'sb_publishable_bxT3eL7jiKWwA0HZg9smDQ_Efxo_weH';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNuZHphcXFyeG9xbHplbWdib3kiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTczMzA3MDMxMCwiZXhwIjoyMDQ4NjQ2MzEwfQ.N-7hXggITi6yM8VZPtDMwehb1_i1IsR6P5VDMQ6-hJg';
 
-        let client;
-        let editId = null;
+        var client;
+        var editId = null;
 
-        function initSupabase() {
+        function startApp() {
             if (window.supabase) {
                 client = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
                 loadReports();
                 setInterval(loadReports, 3000);
             } else {
-                setTimeout(initSupabase, 100);
+                setTimeout(startApp, 200);
             }
         }
 
-        async function loadReports() {
+        function loadReports() {
             if (!client) return;
-            try {
-                const { data, error } = await client.from('reports').select('*').order('id', { ascending: true });
-                if (!error && data) renderTable(data);
-            } catch (err) {
-                console.log(err);
-            }
+            client.from('reports').select('*').order('id', { ascending: true })
+                .then(function(res) {
+                    if (res.data) renderTable(res.data);
+                });
         }
 
-        async function addOrUpdateRow() {
-            const machine = document.getElementById('machine').value;
-            const content = document.getElementById('content').value;
-            const solution = document.getElementById('solution').value;
-            const estimate = document.getElementById('estimate').value;
+        function addOrUpdateRow() {
+            var machine = document.getElementById('machine').value;
+            var content = document.getElementById('content').value;
+            var solution = document.getElementById('solution').value;
+            var estimate = document.getElementById('estimate').value;
 
             if (!machine || !content) {
                 alert('Vui lòng nhập Tên máy và Nội dung sửa chữa!');
                 return;
             }
 
-            const btn = document.getElementById('btn-submit');
+            var btn = document.getElementById('btn-submit');
             btn.innerText = 'Đang lưu... / 正在保存...';
 
-            const now = new Date();
-            const dateStr = now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
-            const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-            const fullTimeStr = `${timeStr} ${dateStr}`;
+            var now = new Date();
+            var dateStr = now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            var timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+            var fullTimeStr = timeStr + ' ' + dateStr;
 
-            const rowData = { machine, content, solution, estimate };
+            var payload = { 
+                machine: machine, 
+                content: content, 
+                content_cn: '', 
+                solution: solution, 
+                solution_cn: '', 
+                estimate: estimate, 
+                estimate_cn: '' 
+            };
 
-            try {
-                let resError;
-                if (editId !== null) {
-                    const { error } = await client.from('reports').update(rowData).eq('id', editId);
-                    resError = error;
-                    editId = null;
-                } else {
-                    rowData.start_time = fullTimeStr;
-                    rowData.completed = false;
-                    const { error } = await client.from('reports').insert([rowData]);
-                    resError = error;
-                }
+            var req;
+            if (editId !== null) {
+                req = client.from('reports').update(payload).eq('id', editId);
+                editId = null;
+            } else {
+                payload.start_time = fullTimeStr;
+                payload.completed = false;
+                req = client.from('reports').insert([payload]);
+            }
 
-                if (resError) {
-                    alert("Lỗi Supabase: " + resError.message);
+            req.then(function(res) {
+                if (res.error) {
+                    alert("Lỗi Supabase: " + res.error.message);
                 } else {
                     clearInputs();
                     loadReports();
                 }
-            } catch (err) {
-                alert("Lỗi kết nối: " + err.message);
-            }
-
-            btn.innerText = 'Thêm Báo Cáo / 添加汇报';
+                btn.innerText = 'Thêm Báo Cáo / 添加汇报';
+            });
         }
 
         function renderTable(reports) {
-            const tbody = document.getElementById('table-body');
+            var tbody = document.getElementById('table-body');
             tbody.innerHTML = '';
-            reports.forEach((item, index) => {
-                const tr = document.createElement('tr');
+            reports.forEach(function(item, index) {
+                var tr = document.createElement('tr');
                 if (item.completed) tr.classList.add('completed');
-                tr.innerHTML = `
-                    <td style="text-align:center; font-weight:bold;">${index + 1}</td>
-                    <td><b class="${item.completed ? 'completed-text' : ''}">${item.machine || ''}</b>${item.completed ? '<br><small class="completed-text">Hoàn thành / 已完成</small>' : ''}</td>
-                    <td style="font-size: 11px; text-align:center;">${item.start_time || ''}</td>
-                    <td>${(item.content || '').replace(/\n/g, '<br>')}</td>
-                    <td>${(item.solution || '').replace(/\n/g, '<br>')}</td>
-                    <td>${item.estimate || ''}</td>
-                    <td class="no-print">
-                        <div class="action-btns">
-                            <button class="btn-sm btn-complete" onclick="markComplete(${item.id})">✓</button>
-                            <button class="btn-sm btn-edit" onclick="editRow(${item.id})">Sửa</button>
-                            <button class="btn-sm btn-delete" onclick="deleteRow(${item.id})">Xóa</button>
-                        </div>
-                    </td>
-                `;
+                tr.innerHTML = 
+                    '<td style="text-align:center; font-weight:bold;">' + (index + 1) + '</td>' +
+                    '<td><b class="' + (item.completed ? 'completed-text' : '') + '">' + (item.machine || '') + '</b>' + (item.completed ? '<br><small class="completed-text">Hoàn thành / 已完成</small>' : '') + '</td>' +
+                    '<td style="font-size: 11px; text-align:center;">' + (item.start_time || '') + '</td>' +
+                    '<td>' + (item.content || '').replace(/\n/g, '<br>') + '</td>' +
+                    '<td>' + (item.solution || '').replace(/\n/g, '<br>') + '</td>' +
+                    '<td>' + (item.estimate || '') + '</td>' +
+                    '<td class="no-print">' +
+                        '<div class="action-btns">' +
+                            '<button class="btn-sm btn-complete" onclick="markComplete(' + item.id + ')">✓</button>' +
+                            '<button class="btn-sm btn-edit" onclick="editRow(' + item.id + ')">Sửa</button>' +
+                            '<button class="btn-sm btn-delete" onclick="deleteRow(' + item.id + ')">Xóa</button>' +
+                        '</div>' +
+                    '</td>';
                 tbody.appendChild(tr);
             });
         }
 
-        async function markComplete(id) {
+        function markComplete(id) {
             if (prompt('Nhập mật khẩu (230):') === '230') {
-                await client.from('reports').update({ completed: true }).eq('id', id);
-                loadReports();
+                client.from('reports').update({ completed: true }).eq('id', id).then(function() {
+                    loadReports();
+                });
             }
         }
 
-        async function editRow(id) {
-            const { data } = await client.from('reports').select('*').eq('id', id).single();
-            if (data) {
-                document.getElementById('machine').value = data.machine || '';
-                document.getElementById('content').value = data.content || '';
-                document.getElementById('solution').value = data.solution || '';
-                document.getElementById('estimate').value = data.estimate || '';
-                editId = id;
-            }
+        function editRow(id) {
+            client.from('reports').select('*').eq('id', id).single().then(function(res) {
+                if (res.data) {
+                    document.getElementById('machine').value = res.data.machine || '';
+                    document.getElementById('content').value = res.data.content || '';
+                    document.getElementById('solution').value = res.data.solution || '';
+                    document.getElementById('estimate').value = res.data.estimate || '';
+                    editId = id;
+                }
+            });
         }
 
-        async function deleteRow(id) {
+        function deleteRow(id) {
             if (confirm('Xóa dòng này?')) {
-                await client.from('reports').delete().eq('id', id);
-                loadReports();
+                client.from('reports').delete().eq('id', id).then(function() {
+                    loadReports();
+                });
             }
         }
 
@@ -198,19 +200,19 @@
         }
 
         function downloadImage() {
-            const reportArea = document.getElementById('report-area');
-            const noPrintElements = document.querySelectorAll('.no-print');
-            noPrintElements.forEach(el => el.style.display = 'none');
-            html2canvas(reportArea, { scale: 2, useCORS: true }).then(canvas => {
-                const link = document.createElement('a');
-                link.download = `Bao_Cao_Repair.png`;
+            var reportArea = document.getElementById('report-area');
+            var noPrintElements = document.querySelectorAll('.no-print');
+            noPrintElements.forEach(function(el) { el.style.display = 'none'; });
+            html2canvas(reportArea, { scale: 2, useCORS: true }).then(function(canvas) {
+                var link = document.createElement('a');
+                link.download = 'Bao_Cao_Repair.png';
                 link.href = canvas.toDataURL('image/png');
                 link.click();
-                noPrintElements.forEach(el => el.style.display = '');
+                noPrintElements.forEach(function(el) { el.style.display = ''; });
             });
         }
 
-        window.onload = initSupabase;
+        window.onload = startApp;
     </script>
 </body>
 </html>

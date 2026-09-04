@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Báo Cáo Tiến Độ Sửa Chữa Máy Móc / 设备维修进度汇报</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * { box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 10px; background-color: #f0f2f5; color: #1c1e21; }
@@ -26,7 +25,6 @@
         th { background-color: #f5f6f7; color: #4b4f56; text-align: center; font-weight: 700; }
         .completed { background-color: #e6f4ea !important; }
         .completed-text { color: #2e7d32; font-weight: bold; }
-        .zh-text { color: #d93025; font-weight: 500; display: block; margin-top: 4px; }
         .action-btns { display: flex; gap: 4px; justify-content: center; }
         .btn-sm { padding: 6px 8px; font-size: 11px; border-radius: 4px; font-weight: bold; }
         .btn-complete { background-color: #34a853; }
@@ -67,41 +65,32 @@
     </div>
 
     <script>
-        // Sửa trực tiếp chuẩn 4 chữ q ở đây
-        const SUPABASE_URL = 'https://sndzaqqqqrxoqlzemgboy.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNuZHphcXFxcnhvcWx6ZW1nYm95Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMDM1MDMsImV4cCI6MjEwMzY3OTUwM30.N-7hXggITi6yM8VZPtDMWehb1_i1IsR6P5vDMQ6-hJg';
-        
-        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        // Địa chỉ URL đã giải mã chuẩn xác 4 chữ q từ API Key của anh: sndzaqqqqrxoqlzemgboy
+        const API_URL = 'https://sndzaqqqqrxoqlzemgboy.supabase.co/rest/v1/reports';
+        const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNuZHphcXFxcnhvcWx6ZW1nYm95Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMDM1MDMsImV4cCI6MjEwMzY3OTUwM30.N-7hXggITi6yM8VZPtDMWehb1_i1IsR6P5vDMQ6-hJg';
+
+        const headers = {
+            'apikey': API_KEY,
+            'Authorization': 'Bearer ' + API_KEY,
+            'Content-Type': 'application/json',
+            'Prefer': 'return=representation'
+        };
+
         var editId = null;
 
-        async function translateText(text) {
-            if (!text || text.trim() === '') return '';
-            try {
-                const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=vi&tl=zh-CN&dt=t&q=${encodeURIComponent(text)}`);
-                const data = await res.json();
-                if (data && data[0]) {
-                    return data[0].map(item => item[0]).join('');
-                }
-            } catch (e) {
-                console.error("Lỗi dịch:", e);
-            }
-            return '';
+        function loadReports() {
+            fetch(API_URL + '?select=*&order=id.asc', { headers: headers })
+                .then(res => {
+                    if (!res.ok) throw new Error('Mã lỗi HTTP: ' + res.status);
+                    return res.json();
+                })
+                .then(data => {
+                    if (Array.isArray(data)) renderTable(data);
+                })
+                .catch(err => console.error("Tải dữ liệu thất bại:", err));
         }
 
-        async function loadReports() {
-            const { data, error } = await _supabase
-                .from('reports')
-                .select('*')
-                .order('id', { ascending: true });
-            
-            if (error) {
-                console.error("Tải dữ liệu thất bại:", error.message);
-                return;
-            }
-            renderTable(data || []);
-        }
-
-        async function addOrUpdateRow() {
+        function addOrUpdateRow() {
             var machine = document.getElementById('machine').value;
             var content = document.getElementById('content').value;
             var solution = document.getElementById('solution').value;
@@ -113,16 +102,7 @@
             }
 
             var btn = document.getElementById('btn-submit');
-            btn.innerText = 'Đang dịch & lưu... / 正在翻译保存...';
-
-            var contentZh = await translateText(content);
-            var solutionZh = await translateText(solution);
-
-            var finalContent = content;
-            if (contentZh) finalContent += '\n' + contentZh;
-
-            var finalSolution = solution;
-            if (solutionZh) finalSolution += '\n' + solutionZh;
+            btn.innerText = 'Đang lưu... / 正在保存...';
 
             var now = new Date();
             var dateStr = now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
@@ -130,37 +110,41 @@
 
             var payload = {
                 machine: machine,
-                content: finalContent,
-                solution: finalSolution,
+                content: content,
+                solution: solution,
                 estimate: estimate
             };
 
-            let result;
+            var method = 'POST';
+            var url = API_URL;
+
             if (editId !== null) {
-                result = await _supabase.from('reports').update(payload).eq('id', editId);
+                method = 'PATCH';
+                url = API_URL + '?id=eq.' + editId;
                 editId = null;
             } else {
                 payload.start_time = timeStr + ' ' + dateStr;
                 payload.completed = false;
-                result = await _supabase.from('reports'].insert([payload]); // Đã sửa lại cú pháp chuẩn
             }
 
-            if (result.error) {
-                alert("Lỗi Supabase: " + result.error.message);
-            } else {
-                clearInputs();
-                loadReports();
-            }
-            btn.innerText = 'Thêm Báo Cáo / 添加汇报';
-        }
-
-        function formatBilingualText(text) {
-            if (!text) return '';
-            var lines = text.split('\n');
-            if (lines.length > 1) {
-                return lines[0] + '<span class="zh-text">' + lines.slice(1).join('<br>') + '</span>';
-            }
-            return lines[0];
+            fetch(url, {
+                method: method,
+                headers: headers,
+                body: JSON.stringify(payload)
+            })
+            .then(res => {
+                if (res.ok) {
+                    clearInputs();
+                    loadReports();
+                } else {
+                    res.text().then(t => alert("Lỗi Supabase: " + t));
+                }
+                btn.innerText = 'Thêm Báo Cáo / 添加汇报';
+            })
+            .catch(err => {
+                alert("Lỗi kết nối: " + err.message);
+                btn.innerText = 'Thêm Báo Cáo / 添加汇报';
+            });
         }
 
         function renderTable(reports) {
@@ -173,8 +157,8 @@
                     '<td style="text-align:center; font-weight:bold;">' + (index + 1) + '</td>' +
                     '<td><b class="' + (item.completed ? 'completed-text' : '') + '">' + (item.machine || '') + '</b>' + (item.completed ? '<br><small class="completed-text">Hoàn thành / 已完成</small>' : '') + '</td>' +
                     '<td style="font-size: 11px; text-align:center;">' + (item.start_time || '') + '</td>' +
-                    '<td>' + formatBilingualText(item.content) + '</td>' +
-                    '<td>' + formatBilingualText(item.solution) + '</td>' +
+                    '<td>' + (item.content || '').replace(/\n/g, '<br>') + '</td>' +
+                    '<td>' + (item.solution || '').replace(/\n/g, '<br>') + '</td>' +
                     '<td>' + (item.estimate || '') + '</td>' +
                     '<td class="no-print">' +
                         '<div class="action-btns">' +
@@ -187,29 +171,37 @@
             });
         }
 
-        async function markComplete(id) {
+        function markComplete(id) {
             if (prompt('Nhập mật khẩu (230):') === '230') {
-                await _supabase.from('reports').update({ completed: true }).eq('id', id);
-                loadReports();
+                fetch(API_URL + '?id=eq.' + id, {
+                    method: 'PATCH',
+                    headers: headers,
+                    body: JSON.stringify({ completed: true })
+                }).then(() => loadReports());
             }
         }
 
-        async function editRow(id) {
-            const { data } = await _supabase.from('reports').select('*').eq('id', id);
-            if (data && data.length > 0) {
-                var item = data[0];
-                document.getElementById('machine').value = item.machine || '';
-                document.getElementById('content').value = item.content ? item.content.split('\n')[0] : '';
-                document.getElementById('solution').value = item.solution ? item.solution.split('\n')[0] : '';
-                document.getElementById('estimate').value = item.estimate || '';
-                editId = id;
-            }
+        function editRow(id) {
+            fetch(API_URL + '?id=eq.' + id, { headers: headers })
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.length > 0) {
+                        var item = data[0];
+                        document.getElementById('machine').value = item.machine || '';
+                        document.getElementById('content').value = item.content || '';
+                        document.getElementById('solution').value = item.solution || '';
+                        document.getElementById('estimate').value = item.estimate || '';
+                        editId = id;
+                    }
+                });
         }
 
-        async function deleteRow(id) {
+        function deleteRow(id) {
             if (confirm('Xóa dòng này?')) {
-                await _supabase.from('reports').delete().eq('id', id);
-                loadReports();
+                fetch(API_URL + '?id=eq.' + id, {
+                    method: 'DELETE',
+                    headers: headers
+                }).then(() => loadReports());
             }
         }
 
